@@ -1,0 +1,16 @@
+[project]
+name = "voice-line"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "claude-agent-sdk>=0.2.128",
+    "httpx>=0.28.1",
+    "numpy>=2.5.1",
+    "pycaw>=20251023",
+    "pynput>=1.8.2",
+    "setuptools<81",
+    "sounddevice>=0.5.5",
+    "webrtcvad-wheels>=2.0.14",
+]

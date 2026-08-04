@@ -1,0 +1,16 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Signal bus -- runtime state written on every launch, not source
+.voice_state
+.voice_waveform
+.voice_loading_pid
+.voice_alert
