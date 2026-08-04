@@ -12,28 +12,24 @@ mic -> ears (sounddevice capture)
 
 ## Prerequisites (once per machine)
 
-Two local servers must be running before you launch voice-line:
+Two local servers must be running before you launch voice-line, and both are installed as Windows services (NSSM) — auto-start on boot, auto-restart on crash, no terminals to babysit:
 
-- **whisper.cpp** (`C:\Users\bryan\whisper-cpp`) — CUDA build, `ggml-small.en.bin` model, serving `/inference` on port 2022.
-- **Kokoro-FastAPI** (`C:\Users\bryan\kokoro-fastapi`) — CUDA torch, serving `/v1/audio/speech` on port 8880.
+- **WhisperCpp** service — `C:\Users\bryan\whisper-cpp`, CUDA build, `ggml-small.en.bin` model, serving `/inference` on port 2022. Launched via `run-service.bat` in that folder.
+- **KokoroFastAPI** service — `C:\Users\bryan\kokoro-fastapi`, CUDA torch, serving `/v1/audio/speech` on port 8880. Launched via `run-service.bat` in that folder, which calls the venv's `python.exe -m uvicorn` directly rather than `uv run` (LocalSystem doesn't inherit the user PATH `uv` lives on) and skips `start-gpu.ps1`'s `uv pip install -e ".[gpu]"` (that command silently re-resolves to CPU-only torch every time it runs — see Gotchas).
 
-Start them (each in its own terminal, left running):
+Manage them like any Windows service:
 
 ```powershell
-# Whisper
-cd C:\Users\bryan\whisper-cpp\bin\Release
-.\whisper-server.exe -m ..\..\models\ggml-small.en.bin --port 2022 --host 127.0.0.1
-
-# Kokoro
-cd C:\Users\bryan\kokoro-fastapi
-.\start-gpu.ps1
+Get-Service WhisperCpp, KokoroFastAPI
+Restart-Service WhisperCpp
+Restart-Service KokoroFastAPI
 ```
 
-`start-gpu.ps1` re-runs `uv pip install -e ".[gpu]"` on every launch, which silently resolves to CPU-only torch on this machine (known uv/pyproject quirk — see Gotchas). After it starts, always confirm GPU is active before trusting it:
+Logs land in `<project>\logs\stdout.log` / `stderr.log` in each folder — check there first if a service won't come up. After any change to Kokoro's torch install, re-verify GPU is actually active (silent CPU fallback, nothing tells you otherwise):
 
 ```powershell
 cd C:\Users\bryan\kokoro-fastapi
-uv run --no-sync python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
+.venv\Scripts\python.exe -c "import torch; print(torch.__version__, torch.cuda.is_available())"
 ```
 
 If it prints `False` or a version without `+cu126`, re-pin the wheel:
@@ -42,7 +38,7 @@ If it prints `False` or a version without `+cu126`, re-pin the wheel:
 uv pip install "torch==2.8.0+cu126" --index-url https://download.pytorch.org/whl/cu126 --force-reinstall
 ```
 
-Want these to survive reboots instead of babysitting two terminals? Install them as NSSM services (see spec — Administrator required, one-time setup). voice-line itself always stays a foreground app you launch on demand; never run it as a service.
+voice-line itself always stays a foreground app you launch on demand; it is intentionally NOT a service — nobody wants a 24/7 open mic.
 
 ## Launch
 
