@@ -2,6 +2,14 @@
 
 Talk to Adam out loud, hands on the keyboard, half-duplex, Windows-native.
 
+## What this is
+
+A hold-to-talk voice interface for talking to Claude Code out loud instead of typing — hold a key anywhere on Windows, speak, release, and hear a spoken reply back through your speakers, first audio landing in 1–2 seconds on a warm turn. Built from a detailed technical spec covering the real failure modes of building this on Windows: the default asyncio event loop can't read keyboard input the normal way, TTS needs a two-stage pipeline or every sentence has an audible gap, and a GPU-accelerated dependency can silently fall back to CPU with nothing telling you.
+
+**Stack:** Python (`asyncio`, `sounddevice`, `pynput`), a local whisper.cpp server (CUDA) for transcription, the Claude Agent SDK for a warm streaming session, and a local Kokoro-FastAPI server (CUDA) for sentence-chunked, cancellable text-to-speech. Both backing servers run as Windows services (NSSM) — auto-start, auto-restart on crash.
+
+**What it demonstrates:** end-to-end systems integration across four independent processes (mic capture, ASR, LLM, TTS) talking over local HTTP; diagnosing and fixing a real silent-GPU-fallback bug (`torch.cuda.is_available()` returning `False` despite a "GPU install" script) by tracing it to a dependency-resolution quirk and pinning the correct CUDA wheel directly; Windows service administration (NSSM, `LocalSystem` account quirks, elevated installs); and building for a documented spec's hard constraints rather than the easy path.
+
 ```
 mic -> ears (sounddevice capture)
     -> local whisper.cpp server on port 2022
